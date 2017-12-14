@@ -24,6 +24,6 @@ def user_exists(details):
         user_queryset_filter['username'] = username
 
     if user_queryset_filter:
-        return  User.objects.filter(**user_queryset_filter).exists()
+        return User.objects.filter(**user_queryset_filter).exists()
 
     return False
