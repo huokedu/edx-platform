@@ -425,6 +425,7 @@ def _get_extended_profile_fields():
         "state": _(u"State/Province/Region"),
         "company": _(u"Company"),
         "title": _(u"Title"),
+        "job_title": _("Job Title"),
         "mailing_address": _(u"Mailing address"),
         "goals": _(u"Tell us why you're interested in {platform_name}").format(
             platform_name=configuration_helpers.get_value("PLATFORM_NAME", settings.PLATFORM_NAME)

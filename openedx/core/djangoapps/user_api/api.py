@@ -666,7 +666,7 @@ class RegistrationFormFactory(object):
         job_title_label = _(u"Job Title")
 
         form_desc.add_field(
-            "job title",
+            "job_title",
             label=job_title_label,
             required=required
         )
@@ -683,7 +683,7 @@ class RegistrationFormFactory(object):
         linkedin_label = _(u"Linkedin Profile")
 
         form_desc.add_field(
-            "LinkedIn",
+            "linkedin",
             label=linkedin_label,
             required=required
         )
