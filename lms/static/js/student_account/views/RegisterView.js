@@ -55,8 +55,7 @@
                         data.thirdPartyAuth.secondaryProviders && data.thirdPartyAuth.secondaryProviders.length
                     );
                     this.currentProvider = data.thirdPartyAuth.currentProvider || '';
-                    this.hideSignInLink = data.thirdPartyAuth.hideSignInLink || false;
-                    this.enterpriseName = data.enterpriseName || '';
+                    this.syncLearnerProfileData = data.thirdPartyAuth.syncLearnerProfileData || false;
                     this.errorMessage = data.thirdPartyAuth.errorMessage || '';
                     this.platformName = data.platformName;
                     this.autoSubmit = data.thirdPartyAuth.autoSubmitRegForm;
@@ -143,8 +142,7 @@
                         context: {
                             fields: fields,
                             currentProvider: this.currentProvider,
-                            hideSignInLink: this.hideSignInLink,
-                            enterpriseName: this.enterpriseName,
+                            syncLearnerProfileData: this.syncLearnerProfileData,
                             providers: this.providers,
                             hasSecondaryProviders: this.hasSecondaryProviders,
                             platformName: this.platformName,
