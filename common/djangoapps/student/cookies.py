@@ -118,6 +118,17 @@ def set_user_info_cookie(response, request):
     )
 
 
+def set_is_enterprise_cookie(request, response, is_enterprise):
+    """ Sets the is_enterprise cookie on the response. """
+    cookie_settings = standard_cookie_settings(request)
+    response.set_cookie(
+        'is_enterprise',
+        json.dumps(is_enterprise),
+        secure=None,
+        **cookie_settings
+    )
+
+
 def get_user_info_cookie_data(request):
     """ Returns information that wil populate the user info cookie. """
     user = request.user
