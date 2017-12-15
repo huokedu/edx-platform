@@ -10,6 +10,7 @@ from rest_framework import permissions, viewsets, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 
+from enrollment import api as enrollment_api
 from entitlements.api.v1.filters import CourseEntitlementFilter
 from entitlements.api.v1.permissions import IsAdminOrAuthenticatedReadOnly
 from entitlements.api.v1.serializers import CourseEntitlementSerializer
@@ -17,7 +18,7 @@ from entitlements.models import CourseEntitlement
 from entitlements.signals import REFUND_ENTITLEMENT
 from openedx.core.djangoapps.catalog.utils import get_course_runs_for_course
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from student.models import CourseEnrollment
+from student.models import CourseEnrollment, User
 from student.models import CourseEnrollmentException, AlreadyEnrolledError
 
 log = logging.getLogger(__name__)
@@ -52,6 +53,47 @@ class EntitlementViewSet(viewsets.ModelViewSet):
         # All other methods require the full Query set and the Permissions class already restricts access to them
         # to Admin users
         return CourseEntitlement.objects.all().select_related('user').select_related('enrollment_course_run')
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        log.info('serializer data is :[%s]', serializer)
+
+        username = serializer.data.get('user')
+        user = User.objects.get(username=username)
+
+        entitlement = CourseEntitlement.objects.get(uuid=serializer.data.get('uuid'), user=user.id, expired_at=None)
+
+        # find all course_runs within the course        
+        course_runs = get_course_runs_for_course(serializer.data.get('course_uuid'))
+
+        # check if the user has audit enrollments for any of the course_runs
+        user_run_enrollments = {CourseEnrollment.get_enrollment(user, CourseKey.from_string(course_run.get('key'))) for course_run in course_runs if CourseEnrollment.get_enrollment(user, CourseKey.from_string(course_run.get('key')))}
+        
+        # filter out unupgradeable user enrollments
+        upgradeable_user_run_enrollments = []
+        if user_run_enrollments:
+            for user_run_enrollment in user_run_enrollments:
+                if user_run_enrollment.upgrade_deadline and user_run_enrollment.upgrade_deadline > timezone.now():
+                    upgradeable_user_run_enrollments.append(user_run_enrollment)
+
+        # if there is only one upgradeable enrollment, convert it from audit to the entitlement.mode
+        # if there is any ambiguity about which enrollment to upgrade 
+        # (i.e. multiple upgradeable enrollment or no available upgradeable enrollment, dont enroll)
+        if len(upgradeable_user_run_enrollments) == 1:
+            log.info('Upgrading enrollment [%s] from audit to [%s] while creating entitlement for user [%s] for course [%s] ', upgradeable_user_run_enrollments, serializer.data.get('mode'), username, serializer.data.get('course_uuid'))
+            enrollment = upgradeable_user_run_enrollments[0]
+            enrollment.update_enrollment(mode=serializer.data.get('mode'))
+            #link the updated enrollment to the entitlement
+            entitlement.set_enrollment(enrollment)
+        else:
+            log.info('No enrollment upgraded while creating entitlement for user [%s] for course [%s] ',username, serializer.data.get('course_uuid'))
+            pass
+        
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def retrieve(self, request, *args, **kwargs):
         """
