@@ -10,7 +10,6 @@ from rest_framework import permissions, viewsets, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 
-from enrollment import api as enrollment_api
 from entitlements.api.v1.filters import CourseEntitlementFilter
 from entitlements.api.v1.permissions import IsAdminOrAuthenticatedReadOnly
 from entitlements.api.v1.serializers import CourseEntitlementSerializer
@@ -59,11 +58,8 @@ class EntitlementViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
 
-        log.info('serializer data is :[%s]', serializer)
-
         username = serializer.data.get('user')
         user = User.objects.get(username=username)
-
         entitlement = CourseEntitlement.objects.get(uuid=serializer.data.get('uuid'), user=user.id, expired_at=None)
 
         # find all course_runs within the course        
@@ -90,7 +86,6 @@ class EntitlementViewSet(viewsets.ModelViewSet):
             entitlement.set_enrollment(enrollment)
         else:
             log.info('No enrollment upgraded while creating entitlement for user [%s] for course [%s] ',username, serializer.data.get('course_uuid'))
-            pass
         
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
